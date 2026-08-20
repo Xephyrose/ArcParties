@@ -1,0 +1,11 @@
+name: ArcParties
+version: '1.0-SNAPSHOT'
+main: org.xephyrose.arcParties.ArcParties
+api-version: '1.21'
+commands:
+  party:
+    description: Party commands
+    usage: /party <invite/join/kick/transfer/leave/list>
+  arcparties:
+    description: prefix for reload
+    usage: /arcparties <reload>

@@ -1,0 +1,6 @@
+org/xephyrose/arcParties/Commands.class
+org/xephyrose/arcParties/ConfigManager.class
+org/xephyrose/arcParties/ArcParties.class
+org/xephyrose/arcParties/ArcPartiesAPI.class
+org/xephyrose/arcParties/Party.class
+org/xephyrose/arcParties/PartyAPI.class
