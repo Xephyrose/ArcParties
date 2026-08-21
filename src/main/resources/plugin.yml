@@ -5,7 +5,7 @@ api-version: '1.21'
 commands:
   party:
     description: Party commands
-    usage: /party <invite/join/kick/transfer/leave/list>
+    usage: /party <invite/join/kick/leave/list/transfer/disband>
   arcparties:
     description: prefix for reload
     usage: /arcparties <reload>

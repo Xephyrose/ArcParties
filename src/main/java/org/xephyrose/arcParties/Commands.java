@@ -16,14 +16,35 @@ public class Commands implements CommandExecutor, TabCompleter {
         return ArcParties.getPlugin(ArcParties.class);
     }
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (command.getName().equalsIgnoreCase("arcparties")) {
-            if (args[0].equalsIgnoreCase("reload"))
-            {
-                getPlugin().configManager.reload();
+    public void announceToParty(Party party, String announcement) {
+        for (UUID memberId : party.getMembers()) {
+            Player member = Bukkit.getPlayer(memberId);
+            if (member != null && member.isOnline()) {
+                member.sendMessage(announcement);
             }
         }
+    }
+
+    public void announceToParty(Party party, String announcement, Player cause_by) {
+        for (UUID memberId : party.getMembers()) {
+            if (!memberId.equals(cause_by.getUniqueId())) {
+                Player member = Bukkit.getPlayer(memberId);
+                if (member != null && member.isOnline()) {
+                    member.sendMessage(announcement);
+                }
+            }
+        }
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // FIXME
+//        if (command.getName().equalsIgnoreCase("arcparties")) {
+//            if (args[0].equalsIgnoreCase("reload"))
+//            {
+//                getPlugin().configManager.reload();
+//            }
+//        }
 
         if (!(sender instanceof Player player)) {
             sender.sendMessage("§cOnly players can use this command.");
@@ -32,7 +53,7 @@ public class Commands implements CommandExecutor, TabCompleter {
 
         if (command.getName().equalsIgnoreCase("party")) {
             if (args.length == 0) {
-                player.sendMessage("§6ArcParties §7- Use /party <invite|join|kick|transfer>");
+                player.sendMessage("§cUsage: /party <invite/join/kick/leave/list/transfer/disband>");
                 return true;
             }
 
@@ -40,9 +61,10 @@ public class Commands implements CommandExecutor, TabCompleter {
                 case "invite" -> handleInvite(player, args);
                 case "join" -> handleJoin(player, args);
                 case "kick" -> handleKick(player, args);
-                case "transfer" -> handleTransfer(player, args);
                 case "leave" -> handleLeave(player);
                 case "list" -> handleList(player);
+                case "transfer" -> handleTransfer(player, args);
+                case "disband" -> handleDisband(player, args);
                 default -> player.sendMessage("§cUnknown arguments. Use /party <invite|join|kick|transfer>");
             }
         }
@@ -72,6 +94,10 @@ public class Commands implements CommandExecutor, TabCompleter {
             return;
         }
 
+        PartyInviteEvent event = new PartyInviteEvent(inviter, target);
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {return;}
+
         ArrayList<UUID> invites = ArcParties.pendingInvites.getOrDefault(target.getUniqueId(), new ArrayList<>());
         if (invites.contains(inviter.getUniqueId())) {
             inviter.sendMessage("§cThat player has already been invited!");
@@ -93,7 +119,6 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
             }
         }, 20 * 60);
-
     }
 
     private void handleJoin(Player joiner, String[] args) {
@@ -132,7 +157,7 @@ public class Commands implements CommandExecutor, TabCompleter {
         Party party = getPlugin().getPlayerParty(inviter.getUniqueId());
 
         if (party == null) {
-            party = getPlugin().createParty(inviter.getUniqueId());
+            party = getPlugin().createParty(inviter);
         } else {
             if (!party.isMember(inviter.getUniqueId())) {
                 joiner.sendMessage("§cThat player is no longer a member of that party!");
@@ -140,18 +165,14 @@ public class Commands implements CommandExecutor, TabCompleter {
             }
         }
 
+        PartyJoinEvent event = new PartyJoinEvent(joiner, party);
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {return;}
+
         getPlugin().addToParty(joiner.getUniqueId(), party);
 
-        for (UUID memberId : party.getMembers()) {
-            if (!memberId.equals(joiner.getUniqueId())) {
-                Player member = Bukkit.getPlayer(memberId);
-                if (member != null && member.isOnline()) {
-                    member.sendMessage("§6" + joiner.getName() + " §ahas joined the party!");
-                }
-            }
-        }
-
         joiner.sendMessage("§aYou joined " + inviter.getName() + "'s party!");
+        announceToParty(party, "§6" + joiner.getName() + " §ahas joined the party!", joiner);
 
     }
 
@@ -188,20 +209,61 @@ public class Commands implements CommandExecutor, TabCompleter {
             return;
         }
 
+        PartyKickEvent event = new PartyKickEvent(kicker, target, party);
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {return;}
+
         getPlugin().removeFromParty(target.getUniqueId());
 
         target.sendMessage("§cYou have been kicked from the party!");
         kicker.sendMessage("§aKicked " + target.getName() + " from the party!");
+        announceToParty(party, "§6" + target.getName() + " §chas been kicked from the party!", target);
+    }
 
-        for (UUID memberId : party.getMembers()) {
-            if (!memberId.equals(kicker.getUniqueId())) {
-                Player member = Bukkit.getPlayer(memberId);
-                if (member != null && member.isOnline()) {
-                    member.sendMessage("§6" + target.getName() + " §chas been kicked from the party!");
+    private void handleLeave(Player player) {
+        Party party = getPlugin().getPlayerParty(player.getUniqueId());
+        if (party == null) {
+            player.sendMessage("§cYou are not in a party!");
+            return;
+        }
+        if (party.isLeader(player.getUniqueId())) {
+            player.sendMessage("§cYou must transfer or disband the party to leave it!");
+            return;
+        }
+
+        PartyLeaveEvent event = new PartyLeaveEvent(player, party);
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {return;}
+
+        getPlugin().removeFromParty(player.getUniqueId());
+
+        player.sendMessage("§cYou left the party!");
+        announceToParty(party, "§6" + player.getName() + " §chas left the party!", player);
+    }
+
+    private void handleList(Player player) {
+        Party party = getPlugin().getPlayerParty(player.getUniqueId());
+        if (party == null) {
+            player.sendMessage("§cYou are not in a party!");
+            return;
+        }
+
+        StringBuilder playerList = new StringBuilder();
+        Set<UUID> members = party.getMembers();
+
+        for (UUID memberId : members) {
+            Player member = Bukkit.getPlayer(memberId);
+            if (member != null && member.isOnline()) {
+                if (!playerList.isEmpty()) {
+                    playerList.append(", ");
                 }
+                playerList.append(member.getName());
             }
         }
 
+        String listMessage = "Party members: " + (!playerList.isEmpty() ?
+                playerList.toString() : "No members online");
+        player.sendMessage(listMessage);
     }
 
     private void handleTransfer(Player transferer, String[] args) {
@@ -237,63 +299,33 @@ public class Commands implements CommandExecutor, TabCompleter {
             return;
         }
 
+        PartyTransferEvent event = new PartyTransferEvent(transferer, target, party);
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {return;}
+
         party.transferLeadership(target.getUniqueId());
-
-        for (UUID memberId : party.getMembers()) {
-            Player member = Bukkit.getPlayer(memberId);
-            if (member != null && member.isOnline()) {
-                member.sendMessage("§6" + target.getName() + " §ais now the party leader!");
-            }
-        }
-
+        announceToParty(party, "§6" + target.getName() + " §ais now the party leader!");
     }
 
-    private void handleLeave(Player player) {
+    private void handleDisband(Player player, String[] args) {
         Party party = getPlugin().getPlayerParty(player.getUniqueId());
         if (party == null) {
             player.sendMessage("§cYou are not in a party!");
             return;
         }
-
-        getPlugin().removeFromParty(player.getUniqueId());
-
-        player.sendMessage("§cYou left the party!");
-
-        for (UUID memberId : party.getMembers()) {
-            if (!memberId.equals(player.getUniqueId())) {
-                Player member = Bukkit.getPlayer(memberId);
-                if (member != null && member.isOnline()) {
-                    member.sendMessage("§6" + player.getName() + " §chas left the party!");
-                }
-            }
-        }
-
-    }
-
-    private void handleList(Player player) {
-        Party party = getPlugin().getPlayerParty(player.getUniqueId());
-        if (party == null) {
-            player.sendMessage("§cYou are not in a party!");
+        if (!party.isLeader(player.getUniqueId())) {
+            player.sendMessage("§cOnly the party leader can disband the party!");
             return;
         }
 
-        StringBuilder playerList = new StringBuilder();
-        Set<UUID> members = party.getMembers();
+        PartyDisbandEvent event = new PartyDisbandEvent(player, party);
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) {return;}
 
-        for (UUID memberId : members) {
-            Player member = Bukkit.getPlayer(memberId);
-            if (member != null && member.isOnline()) {
-                if (!playerList.isEmpty()) {
-                    playerList.append(", ");
-                }
-                playerList.append(member.getName());
-            }
-        }
+        getPlugin().disbandParty(party);
 
-        String listMessage = "Party members: " + (!playerList.isEmpty() ?
-                playerList.toString() : "No members online");
-        player.sendMessage(listMessage);
-
+        player.sendMessage("§cThe party was disbanded!");
+        announceToParty(party, "§6" + player.getName() + " §chas disbanded the party!", player);
     }
 
     @Override
@@ -306,7 +338,7 @@ public class Commands implements CommandExecutor, TabCompleter {
 
         if (commandName.equals("party")) {
             if (args.length == 1) {
-                List<String> completions = Arrays.asList("invite", "join", "kick", "transfer", "leave", "list");
+                List<String> completions = Arrays.asList("invite", "join", "kick", "transfer", "leave", "list", "disband");
                 return completions.stream()
                         .filter(c -> c.toLowerCase().startsWith(args[0].toLowerCase()))
                         .collect(Collectors.toList());
@@ -349,24 +381,25 @@ public class Commands implements CommandExecutor, TabCompleter {
                 }
             }
         }
-        else if (commandName.equals("arcparties")) {
-            if (args.length == 1) {
-                List<String> completions = new ArrayList<>();
-                if (player.hasPermission("arcparties.reload")) {
-                    completions.add("reload");
-                }
-                return completions.stream()
-                        .filter(c -> c.toLowerCase().startsWith(args[0].toLowerCase()))
-                        .collect(Collectors.toList());
-            }
-
-            if (args.length == 2 && args[0].equalsIgnoreCase("reload")) {
-                List<String> completions = Arrays.asList("config", "messages");
-                return completions.stream()
-                        .filter(c -> c.toLowerCase().startsWith(args[1].toLowerCase()))
-                        .collect(Collectors.toList());
-            }
-        }
+        // FIXME
+//        else if (commandName.equals("arcparties")) {
+//            if (args.length == 1) {
+//                List<String> completions = new ArrayList<>();
+//                if (player.hasPermission("arcparties.reload")) {
+//                    completions.add("reload");
+//                }
+//                return completions.stream()
+//                        .filter(c -> c.toLowerCase().startsWith(args[0].toLowerCase()))
+//                        .collect(Collectors.toList());
+//            }
+//
+//            if (args.length == 2 && args[0].equalsIgnoreCase("reload")) {
+//                List<String> completions = Arrays.asList("config", "messages");
+//                return completions.stream()
+//                        .filter(c -> c.toLowerCase().startsWith(args[1].toLowerCase()))
+//                        .collect(Collectors.toList());
+//            }
+//        }
 
         return new ArrayList<>();
     }

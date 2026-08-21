@@ -4,3 +4,10 @@
 /home/max/Repos/ArcParties/src/main/java/org/xephyrose/arcParties/ConfigManager.java
 /home/max/Repos/ArcParties/src/main/java/org/xephyrose/arcParties/Party.java
 /home/max/Repos/ArcParties/src/main/java/org/xephyrose/arcParties/PartyAPI.java
+/home/max/Repos/ArcParties/src/main/java/org/xephyrose/arcParties/PartyCreateEvent.java
+/home/max/Repos/ArcParties/src/main/java/org/xephyrose/arcParties/PartyDisbandEvent.java
+/home/max/Repos/ArcParties/src/main/java/org/xephyrose/arcParties/PartyInviteEvent.java
+/home/max/Repos/ArcParties/src/main/java/org/xephyrose/arcParties/PartyJoinEvent.java
+/home/max/Repos/ArcParties/src/main/java/org/xephyrose/arcParties/PartyKickEvent.java
+/home/max/Repos/ArcParties/src/main/java/org/xephyrose/arcParties/PartyLeaveEvent.java
+/home/max/Repos/ArcParties/src/main/java/org/xephyrose/arcParties/PartyTransferEvent.java

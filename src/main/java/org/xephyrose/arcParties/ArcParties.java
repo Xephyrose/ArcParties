@@ -1,5 +1,7 @@
 package org.xephyrose.arcParties;
 
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -30,9 +32,11 @@ public final class ArcParties extends JavaPlugin {
         return api;
     }
 
-    Party createParty(UUID leader) {
-        Party party = new Party(leader);
-        playerPartyMap.put(leader, party);
+    Party createParty(Player leader) {
+        Party party = new Party(leader.getUniqueId());
+        playerPartyMap.put(leader.getUniqueId(), party);
+        PartyCreateEvent event = new PartyCreateEvent(leader, party);
+        Bukkit.getPluginManager().callEvent(event);
         return party;
     }
 
@@ -47,12 +51,6 @@ public final class ArcParties extends JavaPlugin {
 
         party.removeMember(player);
         playerPartyMap.remove(player);
-
-        if (party.getSize() == 0 || (party.isLeader(player) && party.getSize() == 1)) {
-            disbandParty(party);
-        } else if (party.isLeader(player)) {
-            UUID newLeader = party.getMembers().iterator().next();
-        }
     }
 
     void disbandParty(Party party) {

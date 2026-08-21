@@ -1,5 +1,7 @@
 package org.xephyrose.arcParties;
 
+import org.bukkit.entity.Player;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -9,7 +11,7 @@ public interface PartyAPI {
      * @param leader The party leader
      * @return The new party
      */
-    Party createParty(UUID leader);
+    Party createParty(Player leader);
 
     /**
      * Gets the party a player is in

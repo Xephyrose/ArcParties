@@ -1,5 +1,7 @@
 package org.xephyrose.arcParties;
 
+import org.bukkit.entity.Player;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,7 +13,7 @@ public class ArcPartiesAPI implements PartyAPI {
     }
 
     @Override
-    public Party createParty(UUID leader) {
+    public Party createParty(Player leader) {
         return plugin.createParty(leader);
     }
 

@@ -1,6 +1,13 @@
-org/xephyrose/arcParties/Commands.class
 org/xephyrose/arcParties/ConfigManager.class
 org/xephyrose/arcParties/ArcParties.class
 org/xephyrose/arcParties/ArcPartiesAPI.class
+org/xephyrose/arcParties/PartyInviteEvent.class
+org/xephyrose/arcParties/PartyTransferEvent.class
+org/xephyrose/arcParties/Commands.class
+org/xephyrose/arcParties/PartyJoinEvent.class
+org/xephyrose/arcParties/PartyKickEvent.class
+org/xephyrose/arcParties/PartyLeaveEvent.class
 org/xephyrose/arcParties/Party.class
 org/xephyrose/arcParties/PartyAPI.class
+org/xephyrose/arcParties/PartyCreateEvent.class
+org/xephyrose/arcParties/PartyDisbandEvent.class
