@@ -5,7 +5,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
-class PartyDisbandEvent extends Event implements Cancellable {
+public class PartyDisbandEvent extends Event implements Cancellable {
     private static final HandlerList HANDLERS = new HandlerList();
 
     private boolean cancelled;
